@@ -1,0 +1,60 @@
+import React, { useContext, useState,useCallback,useEffect } from 'react';
+import io from 'socket.io-client';
+import useSound from 'use-sound';
+import config from '../../../config';
+import LatestMessagesContext from '../../../contexts/LatestMessages/LatestMessages';
+import TypingMessage from './TypingMessage';
+import Header from './Header';
+import Footer from './Footer';
+import Message from './Message';
+import '../styles/_messages.scss';
+import initialmess from '../../../common/constants/initialBottyMessage';
+
+const socket = io(
+  config.BOT_SERVER_ENDPOINT,
+  { transports: ['websocket', 'polling', 'flashsocket'] }
+);
+
+
+function Messages() {
+  const [playSend] = useSound(config.SEND_AUDIO_URL);
+  const [playReceive] = useSound(config.RECEIVE_AUDIO_URL);
+  
+  const { setLatestMessage } = useContext(LatestMessagesContext);
+  const [text ,settext]=useState("")
+ const [message,setmessage]=useState(initialmess)
+ const [response ,setresponse]=useState(false)
+   const sendMessage =useCallback(
+    () => {
+      socket.emit('USER_MESSAGE_EVENT',{message:text},(respond)=>{
+    setresponse(true)
+      })
+    },
+    [text],
+  )
+  const onChangeMessage=(e)=>{
+  
+    e.preventDefault();
+    settext(e.target.value)
+  }
+  
+  const fetch=()=>{
+    socket.on('BOT_MESSAGE_EVENT',(respond)=>{
+setmessage(respond.response.output)
+    })
+  }
+  useEffect(() => {
+    fetch()
+   }, [response])
+
+  return (
+    <div className="messages">
+      <Header />
+      <div className="messages__list" id="message-list">
+      </div>
+      <Footer message={message} sendMessage={sendMessage} onChangeMessage={onChangeMessage} />
+    </div>
+  );
+}
+
+export default Messages;
